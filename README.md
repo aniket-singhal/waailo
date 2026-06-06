@@ -1,5 +1,7 @@
 # Waailo HR
 
+https://waailo.vercel.app/
+
 Cloud, multi-tenant HRMS for small and mid-sized businesses. This repository contains the
 design documentation and the Phase 1 (Core HR) implementation.
 
