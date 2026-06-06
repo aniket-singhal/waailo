@@ -35,7 +35,13 @@ export class UserRepository {
   }
 
   async assignRole(userId: string, roleName: RoleName): Promise<void> {
-    const role = await this.prisma.role.findUniqueOrThrow({ where: { name: roleName } });
+    // Self-seed the role if it doesn't exist yet, so a fresh database needs no
+    // seed step for signup/invite to work.
+    const role = await this.prisma.role.upsert({
+      where: { name: roleName },
+      update: {},
+      create: { name: roleName },
+    });
     await this.prisma.userRole.upsert({
       where: { userId_roleId: { userId, roleId: role.id } },
       update: {},
