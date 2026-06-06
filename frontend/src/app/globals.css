@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #faf6ee; /* cream */
+  --surface: #ffffff;
+  --foreground: #0f172a;
+}
+
+.dark {
+  --bg: #0b1220;
+  --surface: #161f31;
+  --foreground: #e2e8f0;
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--foreground);
+}
+
+/* ---- Theme-aware overrides (light: cream; dark: slate) ----
+   These remap the common slate/white utilities used across the app so pages
+   become theme-aware without per-element dark: classes. */
+
+/* Page / surface backgrounds */
+.bg-slate-50 {
+  background-color: var(--bg);
+}
+.dark .bg-white {
+  background-color: var(--surface);
+}
+.dark .bg-slate-100 {
+  background-color: #243044;
+}
+.dark .bg-brand-50 {
+  background-color: #1d2740;
+}
+
+/* Borders */
+.dark .border-slate-200 {
+  border-color: #273249;
+}
+.dark .border-slate-100 {
+  border-color: #1c2740;
+}
+.dark .border-white\/60 {
+  border-color: #273249;
+}
+
+/* Text */
+.dark .text-slate-900 {
+  color: #f1f5f9;
+}
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #cbd5e1;
+}
+.dark .text-slate-600 {
+  color: #aab6c8;
+}
+.dark .text-slate-500,
+.dark .text-slate-400 {
+  color: #8a97aa;
+}
+
+/* Inputs */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: var(--surface);
+  border-color: #2c3852;
+  color: #e2e8f0;
+}
+.dark input::placeholder {
+  color: #64748b;
+}
