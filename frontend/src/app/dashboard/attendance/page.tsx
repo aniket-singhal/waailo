@@ -7,6 +7,13 @@ import * as att from '@/lib/api/attendance';
 import type { AttendanceRecord, RegularisationRequest } from '@/lib/api/types';
 import { ApiError } from '@/lib/api/types';
 import { useAuth } from '@/lib/auth/auth-context';
+import { TeamAttendance } from './team-attendance';
+
+export default function AttendancePage() {
+  const { hasRole } = useAuth();
+  // Managers/HR get the team muster-roll + summary; employees get self check-in.
+  return hasRole('MANAGER') ? <TeamAttendance /> : <MyAttendance />;
+}
 
 function monthRange(): { from: string; to: string } {
   const now = new Date();
@@ -15,7 +22,7 @@ function monthRange(): { from: string; to: string } {
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 
-export default function AttendancePage() {
+function MyAttendance() {
   const { hasRole } = useAuth();
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [pending, setPending] = useState<RegularisationRequest[]>([]);
@@ -56,6 +63,23 @@ export default function AttendancePage() {
     }
   }
 
+  // Check in with browser geolocation (for geo-fencing); falls back if unavailable.
+  function checkInWithLocation() {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      void act(() => att.checkIn(), 'Checked in');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        act(
+          () => att.checkIn({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          'Checked in',
+        ),
+      () => act(() => att.checkIn(), 'Checked in (location unavailable)'),
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const todayRecord = records.find((r) => r.date.slice(0, 10) === today);
 
@@ -75,12 +99,20 @@ export default function AttendancePage() {
             {todayRecord?.checkOutAt
               ? ` · Checked out at ${new Date(todayRecord.checkOutAt).toLocaleTimeString()}`
               : ''}
+            {todayRecord && todayRecord.withinGeofence != null ? (
+              <span
+                className={`ml-2 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  todayRecord.withinGeofence
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                {todayRecord.withinGeofence ? '📍 within office' : '⚠ outside geofence'}
+              </span>
+            ) : null}
           </div>
           <div className="ml-auto flex gap-2">
-            <Button
-              disabled={busy || !!todayRecord?.checkInAt}
-              onClick={() => act(() => att.checkIn(), 'Checked in')}
-            >
+            <Button disabled={busy || !!todayRecord?.checkInAt} onClick={checkInWithLocation}>
               Check in
             </Button>
             <Button

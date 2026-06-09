@@ -35,4 +35,15 @@ export class OrgRepository {
       data: { companyId, name, timezone: timezone ?? 'Asia/Kolkata' },
     });
   }
+
+  findLocation(companyId: string, id: string): Promise<Location | null> {
+    return this.prisma.location.findFirst({ where: { id, companyId } });
+  }
+
+  updateGeofence(
+    id: string,
+    geo: { geoLat: number | null; geoLng: number | null; geoRadiusM: number | null },
+  ): Promise<Location> {
+    return this.prisma.location.update({ where: { id }, data: geo });
+  }
 }

@@ -235,11 +235,14 @@ model Designation {
 }
 
 model Location {
-  id        String            @id @default(uuid())
-  companyId String
-  name      String
-  timezone  String            @default("Asia/Kolkata")
-  company   Company           @relation(fields: [companyId], references: [id])
+  id          String  @id @default(uuid())
+  companyId   String
+  name        String
+  timezone    String  @default("Asia/Kolkata")
+  geoLat      Float? // geofence centre latitude
+  geoLng      Float? // geofence centre longitude
+  geoRadiusM  Int? // geofence radius in metres
+  company     Company           @relation(fields: [companyId], references: [id])
   employees Employee[]
   calendars HolidayCalendar[]
 
@@ -329,6 +332,9 @@ model AttendanceRecord {
   status        AttendanceStatus @default(PRESENT)
   source        AttendanceSource @default(WEB)
   workedMinutes Int              @default(0)
+  checkInLat     Float?
+  checkInLng     Float?
+  withinGeofence Boolean?
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
@@ -800,4 +806,35 @@ model Review {
   @@unique([cycleId, employeeId])
   @@index([companyId, employeeId])
   @@map("reviews")
+}
+
+// ---------- Shift Planning (Attendance) ----------
+model Shift {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  startTime   String // "09:00"
+  endTime     String // "18:00"
+  workingDays String   @default("1,2,3,4,5") // ISO weekday numbers, comma-separated
+  createdAt   DateTime @default(now())
+
+  assignments ShiftAssignment[]
+
+  @@index([companyId])
+  @@map("shifts")
+}
+
+model ShiftAssignment {
+  id            String    @id @default(uuid())
+  companyId     String
+  employeeId    String
+  shiftId       String
+  effectiveFrom DateTime  @db.Date
+  effectiveTo   DateTime? @db.Date
+  createdAt     DateTime  @default(now())
+
+  shift Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, employeeId])
+  @@map("shift_assignments")
 }

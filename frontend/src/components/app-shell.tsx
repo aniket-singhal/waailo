@@ -40,8 +40,8 @@ const NAV: NavGroup[] = [
     items: [
       { label: 'Attendance', href: '/dashboard/attendance' },
       { label: 'Leave', href: '/dashboard/leaves' },
-      { label: 'Shift Planning', soon: true },
-      { label: 'Geo-fencing', soon: true },
+      { label: 'Shift Planning', href: '/dashboard/shifts' },
+      { label: 'Geo-fencing', href: '/dashboard/geofencing', hrOnly: true },
     ],
   },
   {

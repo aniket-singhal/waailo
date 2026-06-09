@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleName } from '@prisma/client';
 import { Public } from 'src/common/auth/public.decorator';
@@ -10,6 +10,7 @@ import {
   DepartmentDto,
   DesignationDto,
   LocationDto,
+  SetGeofenceDto,
   SignupDto,
   UpdateSettingsDto,
 } from './dto/company.dto';
@@ -73,5 +74,11 @@ export class CompanyController {
   @Roles(RoleName.HR_ADMIN)
   createLocation(@CurrentUser() user: AuthUser, @Body() dto: LocationDto) {
     return this.company.createLocation(user.companyId, dto);
+  }
+
+  @Patch('locations/:id/geofence')
+  @Roles(RoleName.HR_ADMIN)
+  setGeofence(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: SetGeofenceDto) {
+    return this.company.setLocationGeofence(user.companyId, id, dto);
   }
 }

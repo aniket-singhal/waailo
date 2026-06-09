@@ -34,6 +34,16 @@ export class AttendanceRepository {
     return this.prisma.attendanceRecord.update({ where: { id }, data });
   }
 
+  findLocationGeofence(
+    companyId: string,
+    locationId: string,
+  ): Promise<{ geoLat: number | null; geoLng: number | null; geoRadiusM: number | null } | null> {
+    return this.prisma.location.findFirst({
+      where: { id: locationId, companyId },
+      select: { geoLat: true, geoLng: true, geoRadiusM: true },
+    });
+  }
+
   rangeForEmployee(
     companyId: string,
     employeeId: string,

@@ -1,8 +1,16 @@
 import { apiFetch } from './client';
-import type { AttendanceRecord, AttendanceSummary, RegularisationRequest } from './types';
+import type {
+  AttendanceRecord,
+  AttendanceReport,
+  AttendanceSummary,
+  RegularisationRequest,
+} from './types';
 
-export const checkIn = (workMode?: string) =>
-  apiFetch<AttendanceRecord>('/attendance/check-in', { method: 'POST', body: { workMode } });
+export const getReport = (month: number, year: number) =>
+  apiFetch<AttendanceReport>(`/attendance/report?month=${month}&year=${year}`);
+
+export const checkIn = (input?: { workMode?: string; lat?: number; lng?: number }) =>
+  apiFetch<AttendanceRecord>('/attendance/check-in', { method: 'POST', body: input ?? {} });
 
 export const checkOut = () =>
   apiFetch<AttendanceRecord>('/attendance/check-out', { method: 'POST', body: {} });

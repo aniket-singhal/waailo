@@ -67,6 +67,20 @@ export class LocationDto {
   timezone?: string;
 }
 
+export class SetGeofenceDto {
+  @ApiProperty({ description: 'Centre latitude' })
+  @IsOptional()
+  geoLat?: number | null;
+
+  @ApiProperty({ description: 'Centre longitude' })
+  @IsOptional()
+  geoLng?: number | null;
+
+  @ApiProperty({ description: 'Radius in metres' })
+  @IsOptional()
+  geoRadiusM?: number | null;
+}
+
 export class CompanyResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;

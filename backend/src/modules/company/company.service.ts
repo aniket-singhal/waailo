@@ -12,6 +12,7 @@ import {
   DepartmentDto,
   DesignationDto,
   LocationDto,
+  SetGeofenceDto,
   SignupDto,
   UpdateSettingsDto,
 } from './dto/company.dto';
@@ -91,6 +92,16 @@ export class CompanyService {
     } catch (e) {
       throw this.asConflict(e, 'A location with this name already exists', 'LOCATION_EXISTS');
     }
+  }
+
+  async setLocationGeofence(companyId: string, id: string, dto: SetGeofenceDto) {
+    const loc = await this.org.findLocation(companyId, id);
+    if (!loc) throw new NotFoundError('Location not found');
+    return this.org.updateGeofence(id, {
+      geoLat: dto.geoLat ?? null,
+      geoLng: dto.geoLng ?? null,
+      geoRadiusM: dto.geoRadiusM ?? null,
+    });
   }
 
   private async uniqueSlug(name: string): Promise<string> {

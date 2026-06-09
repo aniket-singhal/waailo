@@ -47,6 +47,16 @@ export class AttendanceController {
     return this.attendance.monthlySummary(user, employeeId, Number(month), Number(year));
   }
 
+  @Get('report')
+  @Roles(RoleName.MANAGER)
+  report(
+    @CurrentUser() user: AuthUser,
+    @Query('month') month: string,
+    @Query('year') year: string,
+  ) {
+    return this.attendance.report(user, Number(month), Number(year));
+  }
+
   @Get('regularisations/pending')
   @Roles(RoleName.MANAGER)
   pending(@CurrentUser() user: AuthUser) {

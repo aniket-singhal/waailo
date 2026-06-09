@@ -10,6 +10,9 @@ import { AuthUser } from 'src/common/tenant/auth-user';
 import { DomainEventBus } from 'src/common/events/event-bus';
 import { EventKey } from 'src/common/events/domain-events';
 import { EmployeeRepository } from 'src/modules/employees/repositories/employee.repository';
+import { PrismaService } from 'src/common/prisma/prisma.service';
+import { HolidaysService } from 'src/modules/holidays/holidays.service';
+import { isWithinGeofence } from 'src/common/utils/geo.util';
 import { AttendanceRepository } from './repositories/attendance.repository';
 import { RegularisationRepository } from './repositories/regularisation.repository';
 import { WorkTimeCalculator } from './work-time.calculator';
@@ -31,16 +34,23 @@ export class AttendanceService {
     private readonly regularisations: RegularisationRepository,
     private readonly employees: EmployeeRepository,
     private readonly bus: DomainEventBus,
+    private readonly prisma: PrismaService,
+    private readonly holidays: HolidaysService,
   ) {}
 
   async checkIn(user: AuthUser, dto: CheckInDto): Promise<AttendanceRecord> {
-    const employeeId = await this.selfEmployeeId(user);
+    const self = await this.employees.findByUserId(user.companyId, user.userId);
+    if (!self) {
+      throw new UnprocessableError('Your user is not linked to an employee record', 'NO_EMPLOYEE');
+    }
+    const employeeId = self.id;
     const today = dateOnly(new Date());
     const existing = await this.attendance.findByDate(employeeId, today);
     if (existing?.checkInAt) {
       throw new ConflictError('Already checked in today', 'ALREADY_CHECKED_IN');
     }
     const now = new Date();
+    const geo = await this.resolveGeofence(user.companyId, self.locationId, dto.lat, dto.lng);
     return this.attendance.upsert(
       user.companyId,
       employeeId,
@@ -53,9 +63,31 @@ export class AttendanceService {
         workMode: dto.workMode ?? 'ONSITE',
         status: AttendanceStatus.PRESENT,
         source: 'WEB',
+        ...geo,
       },
-      { checkInAt: now, workMode: dto.workMode ?? 'ONSITE', status: AttendanceStatus.PRESENT },
+      { checkInAt: now, workMode: dto.workMode ?? 'ONSITE', status: AttendanceStatus.PRESENT, ...geo },
     );
+  }
+
+  /** Captures check-in coordinates and flags whether inside the location's geofence. */
+  private async resolveGeofence(
+    companyId: string,
+    locationId: string | null,
+    lat?: number,
+    lng?: number,
+  ): Promise<{ checkInLat?: number; checkInLng?: number; withinGeofence?: boolean }> {
+    if (lat == null || lng == null) return {};
+    const out: { checkInLat: number; checkInLng: number; withinGeofence?: boolean } = {
+      checkInLat: lat,
+      checkInLng: lng,
+    };
+    if (locationId) {
+      const geo = await this.attendance.findLocationGeofence(companyId, locationId);
+      if (geo?.geoLat != null && geo.geoLng != null && geo.geoRadiusM != null) {
+        out.withinGeofence = isWithinGeofence(lat, lng, geo.geoLat, geo.geoLng, geo.geoRadiusM);
+      }
+    }
+    return out;
   }
 
   async checkOut(user: AuthUser): Promise<AttendanceRecord> {
@@ -175,6 +207,108 @@ export class AttendanceService {
 
   listPendingRegularisations(user: AuthUser) {
     return this.regularisations.listPending(user.companyId);
+  }
+
+  /**
+   * Team attendance report (HR sees all; a manager sees their reports). Returns a
+   * muster-roll grid (per employee, per day status) plus per-employee summary
+   * counts, merging attendance + approved leave + holidays + weekends.
+   */
+  async report(user: AuthUser, month: number, year: number) {
+    const from = new Date(Date.UTC(year, month - 1, 1));
+    const to = new Date(Date.UTC(year, month, 0));
+    const dim = to.getUTCDate();
+    const todayKey = new Date().toISOString().slice(0, 10);
+
+    // Scope employees by role.
+    let employees = await this.employees.listActive(user.companyId);
+    if (!this.hasHrAccess(user)) {
+      const self = await this.employees.findByUserId(user.companyId, user.userId);
+      employees = self ? employees.filter((e) => e.managerId === self.id) : [];
+    }
+
+    // Holidays (company-wide calendar) for the year.
+    const holidays = await this.holidays.getEffectiveCalendar(user.companyId, null, year);
+    const holidayKeys = new Set(holidays.map((h) => h.date.toISOString().slice(0, 10)));
+
+    // Attendance records for the period, keyed by employee+date.
+    const records = await this.prisma.attendanceRecord.findMany({
+      where: { companyId: user.companyId, date: { gte: from, lte: to } },
+    });
+    const recMap = new Map<string, { status: string; workedMinutes: number }>();
+    for (const r of records) {
+      recMap.set(`${r.employeeId}|${r.date.toISOString().slice(0, 10)}`, {
+        status: r.status,
+        workedMinutes: r.workedMinutes,
+      });
+    }
+
+    // Approved leave days, keyed by employee.
+    const leaves = await this.prisma.leaveRequest.findMany({
+      where: {
+        companyId: user.companyId,
+        status: 'APPROVED',
+        startDate: { lte: to },
+        endDate: { gte: from },
+      },
+    });
+    const leaveMap = new Map<string, Set<string>>();
+    for (const lv of leaves) {
+      const set = leaveMap.get(lv.employeeId) ?? new Set<string>();
+      const cur = new Date(Math.max(lv.startDate.getTime(), from.getTime()));
+      const end = new Date(Math.min(lv.endDate.getTime(), to.getTime()));
+      while (cur.getTime() <= end.getTime()) {
+        set.add(cur.toISOString().slice(0, 10));
+        cur.setUTCDate(cur.getUTCDate() + 1);
+      }
+      leaveMap.set(lv.employeeId, set);
+    }
+
+    const rows = employees.map((emp) => {
+      const days: { date: string; status: string }[] = [];
+      const counts = { present: 0, halfDay: 0, absent: 0, onLeave: 0, holiday: 0, weekend: 0 };
+      let workedMinutes = 0;
+      for (let d = 1; d <= dim; d++) {
+        const date = new Date(Date.UTC(year, month - 1, d));
+        const key = date.toISOString().slice(0, 10);
+        const dow = date.getUTCDay();
+        const rec = recMap.get(`${emp.id}|${key}`);
+        let status: string;
+        if (holidayKeys.has(key)) {
+          status = 'HOLIDAY';
+          counts.holiday++;
+        } else if (dow === 0 || dow === 6) {
+          status = 'WEEKEND';
+          counts.weekend++;
+        } else if (rec && (rec.status === 'PRESENT' || rec.status === 'HALF_DAY')) {
+          status = rec.status;
+          if (rec.status === 'PRESENT') counts.present++;
+          else counts.halfDay++;
+          workedMinutes += rec.workedMinutes;
+        } else if (leaveMap.get(emp.id)?.has(key)) {
+          status = 'ON_LEAVE';
+          counts.onLeave++;
+        } else if (key > todayKey) {
+          status = 'NONE'; // future day
+        } else {
+          status = 'ABSENT';
+          counts.absent++;
+        }
+        days.push({ date: key, status });
+      }
+      const payableDays = counts.present + counts.halfDay * 0.5 + counts.onLeave + counts.holiday;
+      return {
+        employeeId: emp.id,
+        employeeName: `${emp.firstName} ${emp.lastName}`,
+        employeeCode: emp.employeeCode,
+        days,
+        counts,
+        workedHours: Math.round((workedMinutes / 60) * 10) / 10,
+        payableDays,
+      };
+    });
+
+    return { month, year, daysInMonth: dim, rows };
   }
 
   async monthlySummary(user: AuthUser, employeeIdParam: string | undefined, month: number, year: number) {

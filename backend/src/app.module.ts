@@ -12,6 +12,7 @@ import { EmployeesModule } from './modules/employees/employees.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { HolidaysModule } from './modules/holidays/holidays.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { ShiftsModule } from './modules/shifts/shifts.module';
 import { LeavesModule } from './modules/leaves/leaves.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
@@ -30,6 +31,7 @@ import { HealthController } from './health/health.controller';
     DocumentsModule,
     HolidaysModule,
     AttendanceModule,
+    ShiftsModule,
     LeavesModule,
     PayrollModule,
     RecruitmentModule,

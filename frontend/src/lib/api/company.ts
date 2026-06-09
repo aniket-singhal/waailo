@@ -17,3 +17,8 @@ export const createDesignation = (title: string) =>
 export const listLocations = () => apiFetch<Location[]>('/locations');
 export const createLocation = (name: string, timezone?: string) =>
   apiFetch<Location>('/locations', { method: 'POST', body: { name, timezone } });
+
+export const setLocationGeofence = (
+  id: string,
+  geo: { geoLat: number | null; geoLng: number | null; geoRadiusM: number | null },
+) => apiFetch<Location>(`/locations/${id}/geofence`, { method: 'PATCH', body: geo });

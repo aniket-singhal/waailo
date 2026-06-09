@@ -44,6 +44,9 @@ export interface Location {
   id: string;
   name: string;
   timezone: string;
+  geoLat?: number | null;
+  geoLng?: number | null;
+  geoRadiusM?: number | null;
 }
 
 export type EmployeeStatus =
@@ -112,6 +115,57 @@ export interface AttendanceRecord {
   workMode: string;
   status: AttendanceStatus;
   workedMinutes: number;
+  withinGeofence?: boolean | null;
+}
+
+export interface Shift {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  workingDays: string;
+}
+
+export type DayStatus =
+  | 'PRESENT'
+  | 'HALF_DAY'
+  | 'ABSENT'
+  | 'ON_LEAVE'
+  | 'HOLIDAY'
+  | 'WEEKEND'
+  | 'NONE';
+
+export interface AttendanceReportRow {
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  days: { date: string; status: DayStatus }[];
+  counts: {
+    present: number;
+    halfDay: number;
+    absent: number;
+    onLeave: number;
+    holiday: number;
+    weekend: number;
+  };
+  workedHours: number;
+  payableDays: number;
+}
+
+export interface AttendanceReport {
+  month: number;
+  year: number;
+  daysInMonth: number;
+  rows: AttendanceReportRow[];
+}
+
+export interface ShiftAssignment {
+  id: string;
+  employeeId: string;
+  shiftId: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  shift: Shift;
 }
 
 export interface AttendanceSummary {
