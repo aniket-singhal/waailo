@@ -11,7 +11,24 @@ async function bootstrap(): Promise<void> {
   const prefix = config.get('API_PREFIX');
 
   app.setGlobalPrefix(prefix);
-  app.enableCors({ origin: config.get('CORS_ORIGIN'), credentials: true });
+  // CORS_ORIGIN accepts a comma-separated list, so the custom domain, the
+  // vercel.app URL and localhost can all be allowed at once. Use "*" to allow any.
+  const allowedOrigins = String(config.get('CORS_ORIGIN'))
+    .split(',')
+    .map((o) => o.trim().replace(/\/$/, '')) // tolerate trailing slashes
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: (origin, callback) => {
+      // Non-browser clients (curl, server-to-server) send no Origin header.
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes('*') || allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin not allowed by CORS: ${origin}`), false);
+    },
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
