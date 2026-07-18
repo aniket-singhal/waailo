@@ -224,6 +224,8 @@ export type RequestStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'CAN
 export interface LeaveRequest {
   id: string;
   employeeId: string;
+  employeeName?: string | null;
+  employeeCode?: string | null;
   leaveTypeId: string;
   startDate: string;
   endDate: string;

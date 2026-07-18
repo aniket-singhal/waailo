@@ -185,7 +185,14 @@ export default function MyAttendancePage() {
             <h2 className="mb-3 text-sm font-semibold text-slate-800 dark:text-slate-100">
               Today · {todayKey.slice(8)}/{todayKey.slice(5, 7)}
             </h2>
-            <Row label="Total worked" value={fmt(todayRec?.workedMinutes ?? 0)} />
+            {openNow && todayRec?.checkInAt ? (
+              <div className="flex items-center justify-between py-1 text-sm">
+                <span className="text-slate-500">Total worked · live</span>
+                <span className="font-medium text-emerald-600"><LiveTimer checkInAt={todayRec.checkInAt} baseMinutes={todayRec.workedMinutes} /></span>
+              </div>
+            ) : (
+              <Row label="Total worked" value={fmt(todayRec?.workedMinutes ?? 0)} />
+            )}
             <Row label="Status" value={todayRec?.status?.replace(/_/g, ' ') ?? '—'} />
             <Row label="Check-in" value={todayRec?.checkInAt ? new Date(todayRec.checkInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} />
             <Row label="Check-out" value={todayRec?.checkOutAt ? new Date(todayRec.checkOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'} />
@@ -209,6 +216,21 @@ export default function MyAttendancePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LiveTimer({ checkInAt, baseMinutes = 0 }: { checkInAt: string; baseMinutes?: number }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const secs =
+    baseMinutes * 60 + Math.max(0, Math.floor((Date.now() - new Date(checkInAt).getTime()) / 1000));
+  return (
+    <span className="tabular-nums">
+      {Math.floor(secs / 3600)}:{pad(Math.floor((secs % 3600) / 60))}:{pad(secs % 60)}
+    </span>
   );
 }
 

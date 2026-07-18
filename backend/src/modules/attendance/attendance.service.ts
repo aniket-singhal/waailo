@@ -46,8 +46,10 @@ export class AttendanceService {
     const employeeId = self.id;
     const today = dateOnly(new Date());
     const existing = await this.attendance.findByDate(employeeId, today);
-    if (existing?.checkInAt) {
-      throw new ConflictError('Already checked in today', 'ALREADY_CHECKED_IN');
+    // Only block a second clock-in while a session is still OPEN (checked in,
+    // not yet checked out). After a clock-out you may start a new session.
+    if (existing?.checkInAt && !existing.checkOutAt) {
+      throw new ConflictError('You are already clocked in', 'ALREADY_CHECKED_IN');
     }
     const now = new Date();
     const geo = await this.resolveGeofence(user.companyId, self.locationId, dto.lat, dto.lng);
@@ -65,7 +67,9 @@ export class AttendanceService {
         source: 'WEB',
         ...geo,
       },
-      { checkInAt: now, workMode: dto.workMode ?? 'ONSITE', status: AttendanceStatus.PRESENT, ...geo },
+      // Re-opening: start a fresh session, clearing the previous check-out.
+      // workedMinutes is preserved so earlier sessions still count.
+      { checkInAt: now, checkOutAt: null, workMode: dto.workMode ?? 'ONSITE', status: AttendanceStatus.PRESENT, ...geo },
     );
   }
 
@@ -94,15 +98,17 @@ export class AttendanceService {
     const employeeId = await this.selfEmployeeId(user);
     const today = dateOnly(new Date());
     const record = await this.attendance.findByDate(employeeId, today);
-    if (!record || !record.checkInAt) {
-      throw new UnprocessableError('You have not checked in today', 'NOT_CHECKED_IN');
+    if (!record || !record.checkInAt || record.checkOutAt) {
+      throw new UnprocessableError('You are not currently clocked in', 'NOT_CHECKED_IN');
     }
     const now = new Date();
-    const minutes = WorkTimeCalculator.workedMinutes(record.checkInAt, now);
+    // Add this session's minutes to any already accumulated today (multi-session).
+    const segment = WorkTimeCalculator.workedMinutes(record.checkInAt, now);
+    const total = (record.workedMinutes ?? 0) + segment;
     return this.attendance.update(record.id, {
       checkOutAt: now,
-      workedMinutes: minutes,
-      status: WorkTimeCalculator.deriveStatus(minutes),
+      workedMinutes: total,
+      status: WorkTimeCalculator.deriveStatus(total),
     });
   }
 

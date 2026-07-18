@@ -174,7 +174,16 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid flex-1 grid-cols-1 gap-4 sm:grid-cols-3">
-            <Metric label="Today" value={`${fmtHm(workedToday)} / ${fmtHm(480)}`} />
+            {openNow && todayRec?.checkInAt ? (
+              <div>
+                <p className="text-xs text-emerald-600">Today · live</p>
+                <p className="text-lg font-semibold text-emerald-600">
+                  <LiveTimer checkInAt={todayRec.checkInAt} baseMinutes={workedToday} /> <span className="text-sm font-normal text-slate-400">/ 8:00</span>
+                </p>
+              </div>
+            ) : (
+              <Metric label="Today" value={`${fmtHm(workedToday)} / ${fmtHm(480)}`} />
+            )}
             <Metric label="Total monthly balance" value={`${fmtHm(workedMonth)} / ${fmtHm(monthGoal)}`} />
             <Metric
               label="Month-to-date balance"
@@ -284,6 +293,21 @@ function Inner({ title, children }: { title: string; children: React.ReactNode }
       <h3 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-200">{title}</h3>
       {children}
     </div>
+  );
+}
+
+function LiveTimer({ checkInAt, baseMinutes = 0 }: { checkInAt: string; baseMinutes?: number }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const secs =
+    baseMinutes * 60 + Math.max(0, Math.floor((Date.now() - new Date(checkInAt).getTime()) / 1000));
+  return (
+    <span className="tabular-nums">
+      {Math.floor(secs / 3600)}:{pad(Math.floor((secs % 3600) / 60))}:{pad(secs % 60)}
+    </span>
   );
 }
 

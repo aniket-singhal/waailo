@@ -240,11 +240,32 @@ export class LeavesService {
       filter.employeeId = self?.id ?? '__none__';
     }
     if (statusFilter) filter.status = statusFilter as LeaveRequest['status'];
-    return this.requests.list(user.companyId, filter);
+    const rows = await this.requests.list(user.companyId, filter);
+    return this.withApplicant(user.companyId, rows);
   }
 
-  listPending(user: AuthUser) {
-    return this.requests.listPending(user.companyId);
+  async listPending(user: AuthUser) {
+    const rows = await this.requests.listPending(user.companyId);
+    return this.withApplicant(user.companyId, rows);
+  }
+
+  /** Attach the applicant's display name + code to each request. */
+  private async withApplicant(companyId: string, rows: LeaveRequest[]) {
+    const out = [];
+    const cache = new Map<string, { firstName: string; lastName: string; employeeCode: string } | null>();
+    for (const r of rows) {
+      if (!cache.has(r.employeeId)) {
+        const e = await this.employees.findById(companyId, r.employeeId);
+        cache.set(r.employeeId, e ? { firstName: e.firstName, lastName: e.lastName, employeeCode: e.employeeCode } : null);
+      }
+      const e = cache.get(r.employeeId);
+      out.push({
+        ...r,
+        employeeName: e ? `${e.firstName} ${e.lastName}` : null,
+        employeeCode: e?.employeeCode ?? null,
+      });
+    }
+    return out;
   }
 
   async calendar(user: AuthUser, from: string, to: string) {

@@ -5,9 +5,18 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input, Field } from '@/components/ui/input';
 import * as leavesApi from '@/lib/api/leaves';
-import type { LeaveBalance, LeaveRequest, LeaveType } from '@/lib/api/types';
+import { listEmployees } from '@/lib/api/employees';
+import type { Employee, LeaveBalance, LeaveRequest, LeaveType } from '@/lib/api/types';
 import { ApiError } from '@/lib/api/types';
 import { useAuth } from '@/lib/auth/auth-context';
+
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+function withWeekday(d: string): string {
+  const [y, m, day] = d.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !day) return d.slice(0, 10);
+  const wd = WD[new Date(Date.UTC(y, m - 1, day)).getUTCDay()];
+  return `${d.slice(0, 10)} (${wd})`;
+}
 
 export default function LeavesPage() {
   const { hasRole } = useAuth();
@@ -15,11 +24,18 @@ export default function LeavesPage() {
   const [balances, setBalances] = useState<LeaveBalance[]>([]);
   const [requests, setRequests] = useState<LeaveRequest[]>([]);
   const [pending, setPending] = useState<LeaveRequest[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const isApprover = hasRole('MANAGER');
   const typeName = (id: string) => types.find((t) => t.id === id)?.name ?? id;
+  const applicant = (r: LeaveRequest) => {
+    if (r.employeeName) return `${r.employeeName}${r.employeeCode ? ` (${r.employeeCode})` : ''}`;
+    const e = employees.find((x) => x.id === r.employeeId);
+    return e ? `${e.firstName} ${e.lastName} (${e.employeeCode})` : 'Employee';
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -43,6 +59,11 @@ export default function LeavesPage() {
     if (hasRole('MANAGER')) {
       try {
         setPending(await leavesApi.listPendingLeaves());
+      } catch {
+        /* ignore */
+      }
+      try {
+        setEmployees((await listEmployees({ pageSize: 200 })).data);
       } catch {
         /* ignore */
       }
@@ -99,15 +120,22 @@ export default function LeavesPage() {
 
       {types.length > 0 ? <ApplyForm types={types} onApply={load} /> : null}
 
-      {hasRole('MANAGER') && pending.length > 0 ? (
+      {isApprover && pending.length > 0 ? (
         <Card>
           <CardTitle>Pending approvals</CardTitle>
+          <p className="-mt-2 mb-3 text-xs text-slate-400">
+            As {hasRole('HR_ADMIN') ? 'HR / Owner' : 'a reporting manager'}, you can approve or reject leave for your team.
+          </p>
           <div className="space-y-2">
             {pending.map((r) => (
-              <div key={r.id} className="flex items-center justify-between rounded border border-slate-100 p-3 text-sm">
-                <span className="text-slate-700">
-                  {typeName(r.leaveTypeId)} · {r.startDate.slice(0, 10)} → {r.endDate.slice(0, 10)} ({r.days}d)
-                </span>
+              <div key={r.id} className="flex flex-col gap-2 rounded-lg border border-slate-100 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-slate-800">{applicant(r)}</p>
+                  <p className="text-slate-500">
+                    {typeName(r.leaveTypeId)} · {withWeekday(r.startDate)} → {withWeekday(r.endDate)} · {r.days} day{r.days > 1 ? 's' : ''}
+                  </p>
+                  {r.reason ? <p className="text-xs text-slate-400">Reason: {r.reason}</p> : null}
+                </div>
                 <div className="flex gap-2">
                   <Button onClick={() => act(() => leavesApi.decideLeave(r.id, 'APPROVE'), 'Approved')}>
                     Approve
@@ -124,11 +152,12 @@ export default function LeavesPage() {
 
       <Card className="p-0">
         <div className="p-6 pb-0">
-          <CardTitle>My requests</CardTitle>
+          <CardTitle>{isApprover ? 'Leave requests' : 'My requests'}</CardTitle>
         </div>
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 text-left text-slate-500">
             <tr>
+              <th className="px-4 py-3 font-medium">Employee</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Dates</th>
               <th className="px-4 py-3 font-medium">Days</th>
@@ -139,16 +168,17 @@ export default function LeavesPage() {
           <tbody>
             {requests.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   No leave requests yet.
                 </td>
               </tr>
             ) : (
               requests.map((r) => (
                 <tr key={r.id} className="border-b border-slate-100 last:border-0">
+                  <td className="px-4 py-3 font-medium text-slate-800">{applicant(r)}</td>
                   <td className="px-4 py-3 text-slate-700">{typeName(r.leaveTypeId)}</td>
                   <td className="px-4 py-3 text-slate-600">
-                    {r.startDate.slice(0, 10)} → {r.endDate.slice(0, 10)}
+                    {withWeekday(r.startDate)} → {withWeekday(r.endDate)}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{r.days}</td>
                   <td className="px-4 py-3 text-slate-600">{r.status}</td>
@@ -200,9 +230,15 @@ function ApplyForm({ types, onApply }: { types: LeaveType[]; onApply: () => void
     }
   }
 
+  const dayRange =
+    startDate && endDate ? ` (${withWeekday(startDate)} → ${withWeekday(endDate)})` : '';
+
   return (
     <Card>
       <CardTitle>Apply for leave</CardTitle>
+      <p className="-mt-2 mb-3 text-xs text-slate-400">
+        You&apos;re applying for yourself. Requests go to your reporting manager (or HR / Owner) for approval{dayRange}.
+      </p>
       <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-4">
         <Field label="Type" htmlFor="lt">
           <select
