@@ -6,15 +6,26 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Indigo Aurora — modern indigo/violet brand scale.
         brand: {
-          50: '#eef5fb',
-          100: '#d6e6f4',
-          200: '#aecde9',
-          500: '#2f72ab',
-          600: '#1f5a8f',
-          700: '#173f63',
-          900: '#16285a',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          300: '#a5b4fc',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
+          800: '#3730a3',
+          900: '#312e81',
         },
+      },
+      borderRadius: {
+        xl: '0.875rem',
+        '2xl': '1.125rem',
+      },
+      boxShadow: {
+        card: '0 1px 2px 0 rgba(16,24,40,0.04), 0 1px 3px 0 rgba(16,24,40,0.06)',
       },
     },
   },

@@ -49,6 +49,20 @@ export interface Location {
   geoRadiusM?: number | null;
 }
 
+export interface BusinessUnit {
+  id: string;
+  name: string;
+}
+export interface Grade {
+  id: string;
+  name: string;
+}
+export interface CostCenter {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export type EmployeeStatus =
   | 'INVITED'
   | 'ACTIVE'
@@ -348,6 +362,129 @@ export interface Review {
   improvements: string | null;
   comments: string | null;
   status: 'PENDING' | 'SUBMITTED';
+}
+
+// ---- Offboarding ----
+export type ExitType = 'RESIGNATION' | 'TERMINATION' | 'RETIREMENT' | 'END_OF_CONTRACT' | 'OTHER';
+export type ExitStatus = 'INITIATED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+
+export interface ExitTask {
+  id: string;
+  label: string;
+  done: boolean;
+}
+
+export interface ExitRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  type: ExitType;
+  status: ExitStatus;
+  reason: string | null;
+  noticeDate: string;
+  lastWorkingDay: string;
+  exitInterview: string | null;
+  rehireEligible: boolean;
+  tasks?: ExitTask[];
+}
+
+// ---- Reporting & Analytics ----
+export interface LabelCount {
+  label: string;
+  count: number;
+}
+
+export interface ReportsOverview {
+  headline: {
+    activeHeadcount: number;
+    onNotice: number;
+    newJoinersThisYear: number;
+    exitedThisYear: number;
+    attritionRate: number;
+    pendingLeaves: number;
+    openJobs: number;
+  };
+  headcountByDepartment: LabelCount[];
+  headcountByType: LabelCount[];
+  candidatesByStage: LabelCount[];
+  latestPayroll: {
+    periodMonth: number;
+    periodYear: number;
+    status: string;
+    totalGross: number;
+    totalNet: number;
+  } | null;
+}
+
+// ---- Onboarding ----
+export type OnboardingStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'REJECTED';
+
+export interface OnboardingDoc {
+  id: string;
+  title: string;
+  mimeType: string;
+  sizeBytes: number;
+  category: string;
+  createdAt: string;
+}
+export interface OnboardingEducation {
+  qualification: string;
+  institution?: string | null;
+  board?: string | null;
+  yearOfPassing?: number | null;
+  percentage?: string | null;
+}
+export interface OnboardingPrevEmp {
+  organization: string;
+  designation?: string | null;
+  fromDate?: string | null;
+  toDate?: string | null;
+  lastCtc?: number | null;
+  reasonForLeaving?: string | null;
+  managerName?: string | null;
+  managerContact?: string | null;
+}
+export interface OnboardingEmergency {
+  name: string;
+  relationship?: string | null;
+  contactNumber: string;
+  alternateNumber?: string | null;
+  address?: string | null;
+}
+export interface OnboardingNominee {
+  name: string;
+  relationship?: string | null;
+  dateOfBirth?: string | null;
+  contactNumber?: string | null;
+  sharePercent?: number | null;
+  address?: string | null;
+}
+export interface OnboardingData {
+  employee: Record<string, unknown> & {
+    id: string;
+    firstName: string;
+    lastName: string;
+    employeeCode: string;
+  };
+  onboardingStatus: OnboardingStatus;
+  education: OnboardingEducation[];
+  previousEmployment: OnboardingPrevEmp[];
+  emergencyContacts: OnboardingEmergency[];
+  nominees: OnboardingNominee[];
+  documents: OnboardingDoc[];
+}
+export interface OnboardingListItem {
+  employeeId: string;
+  employeeName: string;
+  employeeCode: string;
+  onboardingStatus: OnboardingStatus;
+  updatedAt: string;
 }
 
 export interface ApiErrorBody {

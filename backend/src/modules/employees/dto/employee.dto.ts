@@ -33,12 +33,45 @@ export class CreateEmployeeDto {
   @ApiPropertyOptional() @IsOptional() @IsString() designationId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() locationId?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() managerId?: string;
+
+  // Personal
+  @ApiPropertyOptional() @IsOptional() @IsString() personalEmail?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() alternatePhone?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() gender?: string;
+  @ApiPropertyOptional({ example: '1995-04-01' }) @IsOptional() @IsDateString() dateOfBirth?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() maritalStatus?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() nationality?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bloodGroup?: string;
+
+  // Extended org structure
+  @ApiPropertyOptional() @IsOptional() @IsString() businessUnitId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() gradeId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() costCenterId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() reviewingManagerId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() departmentHeadId?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() holidayCalendarId?: string;
+
+  // Payroll / statutory
+  @ApiPropertyOptional() @IsOptional() payrollActive?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsString() panRef?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() uan?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() esiNumber?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bankAccountHolder?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bankName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bankAccount?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bankIfsc?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() bankBranch?: string;
 }
 
 export class InviteEmployeeDto extends CreateEmployeeDto {
   @ApiPropertyOptional({ description: 'Grant manager role to the invited user' })
   @IsOptional()
   asManager?: boolean;
+
+  @ApiPropertyOptional({ enum: ['EMPLOYEE', 'MANAGER', 'HR_ADMIN'], description: 'Portal role for the invited user' })
+  @IsOptional()
+  @IsString()
+  role?: 'EMPLOYEE' | 'MANAGER' | 'HR_ADMIN';
 }
 
 export class UpdateEmployeeDto {

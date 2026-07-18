@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Department, Designation, Location } from '@prisma/client';
+import { BusinessUnit, CostCenter, Department, Designation, Grade, Location } from '@prisma/client';
 import { PrismaService } from 'src/common/prisma/prisma.service';
 
 /** Tenant reference entities: departments, designations, locations. */
@@ -45,5 +45,29 @@ export class OrgRepository {
     geo: { geoLat: number | null; geoLng: number | null; geoRadiusM: number | null },
   ): Promise<Location> {
     return this.prisma.location.update({ where: { id }, data: geo });
+  }
+
+  // Business units
+  listBusinessUnits(companyId: string): Promise<BusinessUnit[]> {
+    return this.prisma.businessUnit.findMany({ where: { companyId }, orderBy: { name: 'asc' } });
+  }
+  createBusinessUnit(companyId: string, name: string): Promise<BusinessUnit> {
+    return this.prisma.businessUnit.create({ data: { companyId, name } });
+  }
+
+  // Grades / bands
+  listGrades(companyId: string): Promise<Grade[]> {
+    return this.prisma.grade.findMany({ where: { companyId }, orderBy: { name: 'asc' } });
+  }
+  createGrade(companyId: string, name: string): Promise<Grade> {
+    return this.prisma.grade.create({ data: { companyId, name } });
+  }
+
+  // Cost centers
+  listCostCenters(companyId: string): Promise<CostCenter[]> {
+    return this.prisma.costCenter.findMany({ where: { companyId }, orderBy: { code: 'asc' } });
+  }
+  createCostCenter(companyId: string, code: string, name: string): Promise<CostCenter> {
+    return this.prisma.costCenter.create({ data: { companyId, code, name } });
   }
 }

@@ -36,6 +36,16 @@ enum EmploymentType {
   PART_TIME
   CONTRACT
   INTERN
+  PROBATION
+  CONSULTANT
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
 }
 
 enum EmployeeStatus {
@@ -263,22 +273,49 @@ model Employee {
   phone          String?
   dateOfBirth    DateTime?
   gender         String?
+  maritalStatus  String?
+  nationality    String?
+  bloodGroup     String?
+  personalEmail  String?
+  alternatePhone String?
+  currentAddress   String?
+  permanentAddress String?
+  photoDocumentId  String?
   employmentType EmploymentType @default(FULL_TIME)
   dateOfJoining  DateTime
   dateOfExit     DateTime?
   status         EmployeeStatus @default(INVITED)
+  onboardingStatus OnboardingStatus @default(NOT_STARTED)
 
   departmentId  String?
   designationId String?
   locationId    String?
   managerId     String?
+  businessUnitId     String?
+  gradeId            String?
+  costCenterId       String?
+  reviewingManagerId String?
+  departmentHeadId   String?
+  holidayCalendarId  String?
 
-  panRef      String?
-  uan         String?
-  esiNumber   String?
-  bankName    String?
-  bankAccount String?
-  bankIfsc    String?
+  // Payroll / statutory
+  payrollActive     Boolean @default(true)
+  panRef            String?
+  uan               String?
+  prevPfMember      Boolean?
+  esiNumber         String?
+  bankAccountHolder String?
+  bankName          String?
+  bankAccount       String?
+  bankIfsc          String?
+  bankBranch        String?
+
+  // Additional identity documents
+  aadhaarRef         String?
+  passportNumber     String?
+  passportExpiry     DateTime?
+  drivingLicense     String?
+  drivingLicenseExpiry DateTime?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -837,4 +874,155 @@ model ShiftAssignment {
 
   @@index([companyId, employeeId])
   @@map("shift_assignments")
+}
+
+// ---------- Offboarding ----------
+enum ExitType {
+  RESIGNATION
+  TERMINATION
+  RETIREMENT
+  END_OF_CONTRACT
+  OTHER
+}
+
+enum ExitStatus {
+  INITIATED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model ExitRecord {
+  id              String     @id @default(uuid())
+  companyId       String
+  employeeId      String
+  type            ExitType   @default(RESIGNATION)
+  status          ExitStatus @default(INITIATED)
+  reason          String?
+  noticeDate      DateTime   @db.Date
+  lastWorkingDay  DateTime   @db.Date
+  exitInterview   String?
+  rehireEligible  Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  tasks ExitTask[]
+
+  @@index([companyId, status])
+  @@index([companyId, employeeId])
+  @@map("exit_records")
+}
+
+model ExitTask {
+  id           String     @id @default(uuid())
+  companyId    String
+  exitRecordId String
+  label        String
+  done         Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  exitRecord ExitRecord @relation(fields: [exitRecordId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, exitRecordId])
+  @@map("exit_tasks")
+}
+
+// ---------- Extended Org structure ----------
+model BusinessUnit {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("business_units")
+}
+
+model Grade {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String // Grade / Band, e.g. "L4", "Band 3"
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("grades")
+}
+
+model CostCenter {
+  id        String   @id @default(uuid())
+  companyId String
+  code      String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@map("cost_centers")
+}
+
+// ---------- Onboarding (employee self-service) ----------
+model EmployeeEducation {
+  id            String   @id @default(uuid())
+  companyId     String
+  employeeId    String
+  qualification String
+  institution   String?
+  board         String?
+  yearOfPassing Int?
+  percentage    String?
+  createdAt     DateTime @default(now())
+
+  @@index([companyId, employeeId])
+  @@map("employee_education")
+}
+
+model PreviousEmployment {
+  id               String    @id @default(uuid())
+  companyId        String
+  employeeId       String
+  organization     String
+  designation      String?
+  fromDate         DateTime? @db.Date
+  toDate           DateTime? @db.Date
+  lastCtc          Int?
+  reasonForLeaving String?
+  managerName      String?
+  managerContact   String?
+  createdAt        DateTime  @default(now())
+
+  @@index([companyId, employeeId])
+  @@map("previous_employment")
+}
+
+model EmergencyContact {
+  id              String   @id @default(uuid())
+  companyId       String
+  employeeId      String
+  name            String
+  relationship    String?
+  contactNumber   String
+  alternateNumber String?
+  address         String?
+  createdAt       DateTime @default(now())
+
+  @@index([companyId, employeeId])
+  @@map("emergency_contacts")
+}
+
+model Nominee {
+  id            String    @id @default(uuid())
+  companyId     String
+  employeeId    String
+  name          String
+  relationship  String?
+  dateOfBirth   DateTime? @db.Date
+  contactNumber String?
+  sharePercent  Int?
+  address       String?
+  createdAt     DateTime  @default(now())
+
+  @@index([companyId, employeeId])
+  @@map("nominees")
 }

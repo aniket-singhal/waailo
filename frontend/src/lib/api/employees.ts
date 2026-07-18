@@ -16,13 +16,42 @@ export interface CreateEmployeeInput {
   phone?: string;
   dateOfJoining: string;
   employmentType?: string;
+  employeeCode?: string;
   departmentId?: string;
   designationId?: string;
   locationId?: string;
   managerId?: string;
+  // personal
+  personalEmail?: string;
+  alternatePhone?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  maritalStatus?: string;
+  nationality?: string;
+  bloodGroup?: string;
+  // extended org
+  businessUnitId?: string;
+  gradeId?: string;
+  costCenterId?: string;
+  reviewingManagerId?: string;
+  departmentHeadId?: string;
+  holidayCalendarId?: string;
+  // payroll / statutory
+  payrollActive?: boolean;
+  panRef?: string;
+  uan?: string;
+  esiNumber?: string;
+  bankAccountHolder?: string;
+  bankName?: string;
+  bankAccount?: string;
+  bankIfsc?: string;
+  bankBranch?: string;
 }
 
-export type InviteEmployeeInput = CreateEmployeeInput & { asManager?: boolean };
+export type InviteEmployeeInput = CreateEmployeeInput & {
+  asManager?: boolean;
+  role?: 'EMPLOYEE' | 'MANAGER' | 'HR_ADMIN';
+};
 
 function toQueryString(q: EmployeeQuery): string {
   const params = new URLSearchParams();

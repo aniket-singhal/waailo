@@ -17,6 +17,9 @@ import { LeavesModule } from './modules/leaves/leaves.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { PerformanceModule } from './modules/performance/performance.module';
+import { OffboardingModule } from './modules/offboarding/offboarding.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HealthController } from './health/health.controller';
 
@@ -36,6 +39,9 @@ import { HealthController } from './health/health.controller';
     PayrollModule,
     RecruitmentModule,
     PerformanceModule,
+    OffboardingModule,
+    OnboardingModule,
+    ReportsModule,
     NotificationsModule,
   ],
   controllers: [HealthController],

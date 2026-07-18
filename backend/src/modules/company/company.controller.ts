@@ -7,9 +7,11 @@ import { CurrentUser } from 'src/common/auth/current-user.decorator';
 import { AuthUser } from 'src/common/tenant/auth-user';
 import { CompanyService } from './company.service';
 import {
+  CostCenterDto,
   DepartmentDto,
   DesignationDto,
   LocationDto,
+  NamedEntityDto,
   SetGeofenceDto,
   SignupDto,
   UpdateSettingsDto,
@@ -80,5 +82,41 @@ export class CompanyController {
   @Roles(RoleName.HR_ADMIN)
   setGeofence(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: SetGeofenceDto) {
     return this.company.setLocationGeofence(user.companyId, id, dto);
+  }
+
+  @Get('business-units')
+  @Roles(RoleName.EMPLOYEE)
+  listBusinessUnits(@CurrentUser() user: AuthUser) {
+    return this.company.listBusinessUnits(user.companyId);
+  }
+
+  @Post('business-units')
+  @Roles(RoleName.HR_ADMIN)
+  createBusinessUnit(@CurrentUser() user: AuthUser, @Body() dto: NamedEntityDto) {
+    return this.company.createBusinessUnit(user.companyId, dto.name);
+  }
+
+  @Get('grades')
+  @Roles(RoleName.EMPLOYEE)
+  listGrades(@CurrentUser() user: AuthUser) {
+    return this.company.listGrades(user.companyId);
+  }
+
+  @Post('grades')
+  @Roles(RoleName.HR_ADMIN)
+  createGrade(@CurrentUser() user: AuthUser, @Body() dto: NamedEntityDto) {
+    return this.company.createGrade(user.companyId, dto.name);
+  }
+
+  @Get('cost-centers')
+  @Roles(RoleName.EMPLOYEE)
+  listCostCenters(@CurrentUser() user: AuthUser) {
+    return this.company.listCostCenters(user.companyId);
+  }
+
+  @Post('cost-centers')
+  @Roles(RoleName.HR_ADMIN)
+  createCostCenter(@CurrentUser() user: AuthUser, @Body() dto: CostCenterDto) {
+    return this.company.createCostCenter(user.companyId, dto.code, dto.name);
   }
 }

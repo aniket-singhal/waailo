@@ -80,4 +80,30 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   return (await res.json()) as T;
 }
 
+/** Multipart upload with bearer auth (does not set JSON content-type). */
+export async function apiUpload<T>(path: string, formData: FormData, _retried = false): Promise<T> {
+  const headers: Record<string, string> = {};
+  const access = tokenStore.getAccess();
+  if (access) headers.Authorization = `Bearer ${access}`;
+  const res = await fetch(`${BASE_URL}${path}`, { method: 'POST', headers, body: formData });
+  if (res.status === 401 && !_retried && (await tryRefresh())) {
+    return apiUpload<T>(path, formData, true);
+  }
+  if (!res.ok) throw await parseError(res);
+  return (await res.json()) as T;
+}
+
+/** Fetches a file as a Blob with bearer auth (for authenticated downloads). */
+export async function apiDownloadBlob(path: string, _retried = false): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  const access = tokenStore.getAccess();
+  if (access) headers.Authorization = `Bearer ${access}`;
+  const res = await fetch(`${BASE_URL}${path}`, { headers });
+  if (res.status === 401 && !_retried && (await tryRefresh())) {
+    return apiDownloadBlob(path, true);
+  }
+  if (!res.ok) throw await parseError(res);
+  return res.blob();
+}
+
 export { BASE_URL };

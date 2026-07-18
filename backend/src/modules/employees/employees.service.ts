@@ -49,6 +49,7 @@ export class EmployeesService {
         dateOfJoining: new Date(dto.dateOfJoining),
         status: 'INVITED',
         ...this.relations(dto),
+        ...this.scalars(dto),
       });
       return this.toDto(employee);
     } catch (e) {
@@ -65,7 +66,11 @@ export class EmployeesService {
     dto: InviteEmployeeDto,
   ): Promise<EmployeeResponseDto & { inviteToken: string }> {
     await this.assertManagerValid(companyId, dto.managerId);
-    const role = dto.asManager ? RoleName.MANAGER : RoleName.EMPLOYEE;
+    const role = dto.role
+      ? (dto.role as RoleName)
+      : dto.asManager
+        ? RoleName.MANAGER
+        : RoleName.EMPLOYEE;
     const { user, inviteToken } = await this.users.createInvited(companyId, dto.email, role);
     const employeeCode = dto.employeeCode ?? (await this.nextEmployeeCode(companyId));
     const employee = await this.employees.create({
@@ -80,6 +85,7 @@ export class EmployeesService {
       dateOfJoining: new Date(dto.dateOfJoining),
       status: 'INVITED',
       ...this.relations(dto),
+      ...this.scalars(dto),
     });
     this.bus.publish({
       key: EventKey.EmployeeInvited,
@@ -227,6 +233,24 @@ export class EmployeesService {
       ...(dto.locationId ? { location: { connect: { id: dto.locationId } } } : {}),
       ...(dto.managerId ? { manager: { connect: { id: dto.managerId } } } : {}),
     };
+  }
+
+  /** Plain scalar (non-relation) columns from the extended invite form. */
+  private scalars(dto: CreateEmployeeDto): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    const strFields: (keyof CreateEmployeeDto)[] = [
+      'personalEmail', 'alternatePhone', 'gender', 'maritalStatus', 'nationality', 'bloodGroup',
+      'businessUnitId', 'gradeId', 'costCenterId', 'reviewingManagerId', 'departmentHeadId',
+      'holidayCalendarId', 'panRef', 'uan', 'esiNumber', 'bankAccountHolder', 'bankName',
+      'bankAccount', 'bankIfsc', 'bankBranch',
+    ];
+    for (const f of strFields) {
+      const v = dto[f];
+      if (v !== undefined && v !== '') out[f] = v;
+    }
+    if (dto.dateOfBirth) out.dateOfBirth = new Date(dto.dateOfBirth);
+    if (dto.payrollActive !== undefined) out.payrollActive = dto.payrollActive;
+    return out;
   }
 
   private asConflict(e: unknown, message: string, code: string): Error {

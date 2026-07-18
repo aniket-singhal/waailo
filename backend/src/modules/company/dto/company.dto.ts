@@ -67,6 +67,28 @@ export class LocationDto {
   timezone?: string;
 }
 
+export class NamedEntityDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  name!: string;
+}
+
+export class CostCenterDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
+  code!: string;
+
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(80)
+  name!: string;
+}
+
 export class SetGeofenceDto {
   @ApiProperty({ description: 'Centre latitude' })
   @IsOptional()

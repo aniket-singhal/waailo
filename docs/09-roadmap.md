@@ -14,7 +14,8 @@ flowchart LR
     P1 --> P2[Phase 2<br/>Time & Leave]
     P2 --> P3[Phase 3<br/>Payroll]
     P3 --> P4[Phase 4<br/>Platform polish]
-    P4 --> P5[Phase 5+<br/>Future modules]
+    P4 --> P5[Phase 5<br/>Future modules]
+    P5 --> P6[Phase 6<br/>Commercialization]
 ```
 
 ### Phase 0 — Foundations
@@ -68,6 +69,20 @@ on-call runbooks in place.
 
 See §9.2.
 
+### Phase 6 — Commercialization (SaaS productization)
+
+Turn the multi-tenant app into a sellable SaaS: subscription **billing** (per-seat plans,
+recurring collection), **plan enforcement** (seat limits + feature flags), production
+**hardening** (RLS, rate limiting, real S3 + email/WhatsApp providers), and the **commercial
+surface** (pricing page, billing settings, customer portal). Payment strategy is
+**Razorpay Subscriptions for India first**, adding a **Merchant of Record** (Paddle/Dodo) for
+international customers later. Full design in
+[document 13](./13-saas-commercialization-and-billing.md).
+
+**Exit criteria**: a company can pick a plan, pay via Razorpay (UPI Autopay / card e-mandate),
+and have paid features unlocked automatically via verified webhooks; seat limits enforce; the
+billing portal lets them manage/cancel.
+
 ## 9.2 Future modules
 
 | Module | Summary | Notes on fit with current design |
@@ -79,6 +94,7 @@ See §9.2.
 | **Advanced analytics** | Attrition, cost trends, diversity (where lawful) reporting | Consumes the analytics event stream + read replicas |
 | **Multi-currency / multi-country payroll** | Beyond India | Statutory engine already data-driven; add country rate tables and currency handling |
 | **Biometric / hardware attendance** | Device integrations | `AttendanceSource.BIOMETRIC` and an import port already in the model |
+| **Billing & subscriptions** | Per-seat plans, recurring collection, plan gating, billing portal | New `BillingModule` + `Plan`/`Subscription` tables hanging off `companyId`; Razorpay-first, MoR later. See [document 13](./13-saas-commercialization-and-billing.md) |
 
 ## 9.3 Cross-cutting workstreams (run throughout)
 
@@ -119,7 +135,51 @@ its UI; and the design docs updated to match what shipped.
 | 2026-06-06 | Payroll completion: TDS (simplified new-regime estimate), attendance-based loss-of-pay, payslip PDF (pdfkit). Needs `npm install` + re-seed to activate. Backend 41 tests. | Engineering |
 | 2026-06-06 | UI redesign: left-sidebar shell with grouped nav, navy palette, redesigned login (SSO placeholders, password toggle) and dashboard (quick actions, stat cards, charts, checklist). | Engineering |
 | 2026-06-06 | Phase 5 modules: **Recruitment** (job openings, applicant pipeline APPLIED→…→HIRED, offers, hire→employee invite) and **Performance** (goals + progress, review cycles, reviews). New DB tables — run `prisma migrate dev` to apply. Backend 45 unit tests pass; tsc + build clean. | Engineering |
+| 2026-06-10 | Attendance team view: HR/managers get a **team attendance report** — Zoho-style **Muster Roll** grid (employees × days, P/A/L/H/W) + **Summary** table, merging attendance + approved leave + holidays + weekends. New `GET /attendance/report`; no schema change. Verified live as owner; 49 backend tests pass, frontend build clean. | Engineering |
+| 2026-06-10 | Added **Phase 6 — Commercialization** plan and [document 13](./13-saas-commercialization-and-billing.md): subscription/billing architecture (`Plan`/`Subscription`, `BillingModule`, webhook-driven status, plan gating) and payment strategy (**Razorpay Subscriptions India-first; Merchant of Record for international later**). Planning only — not yet built. | Engineering |
+| 2026-06-17 | Three "Soon" modules shipped: **Org Chart** (reporting-hierarchy tree, frontend-only from `managerId`), **Offboarding** (new `ExitRecord`/`ExitTask` tables, clearance checklist, status flow that sets employee ON_NOTICE→EXITED; `npx prisma migrate dev` required), and **Reporting & Analytics** (`GET /reports/overview` — headcount/attrition/leave/recruitment/payroll aggregates + dashboard). Backend tsc + 49 tests pass; frontend tsc + build clean. Live verification pending (dev servers were down). | Engineering |
+| 2026-07-18 | **Detailed forms** (from client PDFs): expanded **Employee Invite/Setup** form (personal, employment+org, payroll/statutory, system/access) and new employee **self-service Onboarding** form + HR **Onboarding Review**. New org entities **BusinessUnit/Grade/CostCenter** (+ CRUD APIs); Employee expanded with personal/statutory/org/policy fields + `onboardingStatus`; new tables `employee_education`, `previous_employment`, `emergency_contacts`, `nominees`; `EmploymentType` gained PROBATION/CONSULTANT; `OnboardingStatus` enum added. **Real local-disk file uploads** (multipart) for onboarding documents with authenticated download. New `OnboardingModule` (self-service save/submit/upload + HR review approve/reject). Backend tsc + **59 tests** pass; frontend tsc + build clean. **Requires `npx prisma migrate dev` + a writable `STORAGE_LOCAL_DIR`.** Live verification pending. FINHR recommendation doc captured in §9.7 as the productization backlog. | Engineering |
 
 > When an architectural decision changes, add a row here and update the affected document.
 > For significant decisions, also write a short ADR (context → decision → consequences) and
 > link it from this changelog.
+
+## 9.7 FINHR product-vision backlog (from client recommendation doc)
+
+Captured from the "Recommendation for FINHR Automation Suite" document so it isn't lost. Items
+already shipped are checked; the rest are future work, grouped by suite. This is a backlog, not
+a committed plan — sequence against the commercialization critical path in
+[document 13](./13-saas-commercialization-and-billing.md).
+
+**HRM suite**
+
+- Recruitment: [x] candidate pipeline & job openings; [ ] manpower-planning dashboard (planned vs
+  actual), [ ] requisition approval workflow, [ ] auto interview emails (reject/shortlist/select),
+  [ ] technical-assignment sharing.
+- Onboarding: [x] digital onboarding form + document collection + HR review (self-service);
+  [ ] auto employee-ID generation with duplicate alarm, [ ] probation tracking & confirmation alerts.
+- Performance: [x] goals + reviews; [ ] KRA/KPI framework, [ ] 9-box grid & bell curve, [ ] IDP
+  tracker, [ ] link performance→compensation.
+- Payroll/compliance: [x] detailed payroll components, EPF/ESI/PT/TDS; [ ] centralized compliance
+  dashboard with alerts, [ ] audit-ready report pack.
+- HR ops: [x] employee master data, document management, **org hierarchy chart**; [x] leave
+  management/approval.
+- Attendance: [x] work-mode summary for all employees (muster roll + summary).
+- Succession planning: [ ] talent identification, [ ] promotion pipeline, [ ] internal job postings
+  visible on employee dashboard (referrals).
+- Exit management: [x] resignation/exit workflow, notice-period, checklist; [ ] employee-initiated
+  resignation from dashboard → approval routing, [ ] F&F settlement, [ ] auto asset-recovery trigger.
+
+**Admin suite (new product area — not yet started)**
+
+- Asset management (inventory, employee allocation, repair logs, auto allocate on onboarding / recover
+  on exit), Inventory & procurement, Vendor management, Service-request/ticketing (SLA), Travel &
+  logistics, Facility & space (room booking), Admin document/compliance (expiry alerts), Admin expense
+  tracker. Each is a distinct module; collectively a second product surface.
+
+**Employee dashboard enhancements**
+
+- [ ] Work-mode selection at clock-in, [ ] missed-punch reminder (~30 min), [ ] birthday/anniversary
+  announcements, [ ] reimbursement tracking, [ ] tax declarations, [ ] L&D training/certifications,
+  [ ] IT/Admin/travel request raising, [ ] letters (offer/appointment/increment) download,
+  [ ] announcements/policy feed.

@@ -104,6 +104,42 @@ export class CompanyService {
     });
   }
 
+  // ---- Business units ----
+  listBusinessUnits(companyId: string) {
+    return this.org.listBusinessUnits(companyId);
+  }
+  async createBusinessUnit(companyId: string, name: string) {
+    try {
+      return await this.org.createBusinessUnit(companyId, name);
+    } catch (e) {
+      throw this.asConflict(e, 'A business unit with this name already exists', 'BUSINESS_UNIT_EXISTS');
+    }
+  }
+
+  // ---- Grades ----
+  listGrades(companyId: string) {
+    return this.org.listGrades(companyId);
+  }
+  async createGrade(companyId: string, name: string) {
+    try {
+      return await this.org.createGrade(companyId, name);
+    } catch (e) {
+      throw this.asConflict(e, 'A grade with this name already exists', 'GRADE_EXISTS');
+    }
+  }
+
+  // ---- Cost centers ----
+  listCostCenters(companyId: string) {
+    return this.org.listCostCenters(companyId);
+  }
+  async createCostCenter(companyId: string, code: string, name: string) {
+    try {
+      return await this.org.createCostCenter(companyId, code, name);
+    } catch (e) {
+      throw this.asConflict(e, 'A cost center with this code already exists', 'COST_CENTER_EXISTS');
+    }
+  }
+
   private async uniqueSlug(name: string): Promise<string> {
     const base = slugify(name) || 'company';
     let candidate = base;

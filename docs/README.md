@@ -27,6 +27,10 @@ for a full picture, or jump to the one relevant to your task.
 | 07 | [Security & Compliance](./07-security-compliance.md) | AuthN/Z, tenancy isolation, GDPR, EPF/ESI/TDS |
 | 08 | [Non-Functional Requirements](./08-nfr-observability.md) | Performance, caching, queues, observability |
 | 09 | [Roadmap](./09-roadmap.md) | Phased delivery plan and future modules |
+| 10 | [Payroll — How It Works](./10-payroll-how-it-works.md) | Payroll calculation, statutory deductions, payslips |
+| 11 | [Deploy & GitHub](./11-deploy-and-github.md) | Vercel + Render + Neon deployment, GitHub setup |
+| 12 | [Business Plan](./12-business-plan.md) | Pricing, revenue projections, go-to-market |
+| 13 | [SaaS Commercialization & Billing](./13-saas-commercialization-and-billing.md) | Subscription/billing architecture + payment strategy (Razorpay-first, MoR later) |
 
 ## Diagram conventions
 
